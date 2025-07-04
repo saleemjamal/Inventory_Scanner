@@ -1,6 +1,6 @@
 class APIManager {
     constructor() {
-        this.baseURL = 'https://script.google.com/a/macros/poppatjamals.com/s/AKfycbwUh0M7w2Ipmt3LVOmQCTEo5NOCGaZh3yPTR4tKWAgiibLpEgWkOQANlhXT9TDMrBhJNA/exec';
+        this.baseURL = 'https://script.google.com/a/macros/poppatjamals.com/s/AKfycbxjRhfAUZWr8p1TFC-Zg-T1Vsn8zIA4vT1aOpoIJKs7GA92id5_OK-Rle4CtkWwE3d5_g/exec';
         this.isOnline = navigator.onLine;
         
         window.addEventListener('online', () => {
