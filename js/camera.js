@@ -120,6 +120,7 @@ class CameraManager {
     }
 
     retakePhoto() {
+        console.log('retakePhoto() called - clearing capturedImageData');
         this.capturedImageData = null;
         this.previewContainer.style.display = 'none';
         this.retakePhotoBtn.style.display = 'none';
@@ -151,6 +152,7 @@ class CameraManager {
     }
 
     resetCamera() {
+        console.log('resetCamera() called - clearing capturedImageData');
         this.stopCamera();
         this.capturedImageData = null;
         this.videoElement.style.display = 'none';
