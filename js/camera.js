@@ -129,12 +129,27 @@ class CameraManager {
         }
 
         try {
-            // Generate filename from form data if available
-            const storeName = document.getElementById('store-name')?.value || 'Photo';
-            const cartonNumber = document.getElementById('carton-number')?.value || 'Unknown';
-            const cleanStoreName = storeName.replace(/[^a-zA-Z0-9]/g, '_');
-            const cleanCartonNumber = cartonNumber.replace(/[^a-zA-Z0-9]/g, '_');
-            const filename = `${cleanStoreName}_${cleanCartonNumber}.jpg`;
+            // Generate filename - use form data if available, otherwise timestamp
+            const storeName = document.getElementById('store-name')?.value?.trim();
+            const cartonNumber = document.getElementById('carton-number')?.value?.trim();
+            
+            let filename;
+            if (storeName && cartonNumber) {
+                // Use form data if both fields are filled
+                const cleanStoreName = storeName.replace(/[^a-zA-Z0-9]/g, '_');
+                const cleanCartonNumber = cartonNumber.replace(/[^a-zA-Z0-9]/g, '_');
+                filename = `${cleanStoreName}_${cleanCartonNumber}.jpg`;
+            } else {
+                // Use timestamp if form isn't filled yet
+                const now = new Date();
+                const timestamp = now.getFullYear() + 
+                    String(now.getMonth() + 1).padStart(2, '0') + 
+                    String(now.getDate()).padStart(2, '0') + '_' +
+                    String(now.getHours()).padStart(2, '0') + 
+                    String(now.getMinutes()).padStart(2, '0') + 
+                    String(now.getSeconds()).padStart(2, '0');
+                filename = `Inventory_${timestamp}.jpg`;
+            }
 
             // Convert base64 to blob
             const base64Data = this.capturedImageData.split(',')[1];
