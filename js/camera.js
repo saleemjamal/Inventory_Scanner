@@ -147,10 +147,11 @@ class CameraManager {
             const blob = new Blob([byteArray], { type: 'image/jpeg' });
             const file = new File([blob], filename, { type: 'image/jpeg' });
 
-            // Check if we're on mobile (touch device) and share API is available
-            const isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+            // Force download on desktop - only use share on actual mobile devices
+            const userAgent = navigator.userAgent.toLowerCase();
+            const isMobileDevice = /android|iphone|ipad|ipod|blackberry|windows phone/.test(userAgent);
             
-            if (isMobile && navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+            if (isMobileDevice && navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
                 // Mobile: Use native share menu
                 await navigator.share({
                     files: [file],
@@ -159,7 +160,7 @@ class CameraManager {
                 });
                 this.showSuccess('Photo shared successfully');
             } else {
-                // Desktop: Always download directly
+                // Desktop/Windows: Always download directly
                 const url = URL.createObjectURL(blob);
                 const downloadLink = document.createElement('a');
                 downloadLink.href = url;
