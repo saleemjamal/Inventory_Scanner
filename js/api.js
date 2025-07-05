@@ -53,8 +53,6 @@ class APIManager {
                 
                 const result = await response.json();
                 
-                // Debug: Log the inventory submission response
-                console.log('Inventory submission response:', JSON.stringify(result, null, 2));
                 
                 if (result.success) {
                     if (result.stores) {
@@ -145,10 +143,13 @@ class APIManager {
 
     async uploadImage(imageData, storeName, cartonNumber) {
         if (!this.isOnline) {
+            console.log('Cannot upload image: offline');
             return null;
         }
         
         try {
+            console.log('Starting image upload for store:', storeName, 'carton:', cartonNumber);
+            
             // Check authentication
             if (!window.authManager || !window.authManager.isAuthenticated()) {
                 throw new Error('Authentication required');
@@ -171,8 +172,10 @@ class APIManager {
             }
             
             const result = await response.json();
+            console.log('Image upload response:', JSON.stringify(result, null, 2));
             
             if (result.success) {
+                console.log('Image uploaded successfully:', result.imageUrl);
                 return result.imageUrl;
             } else {
                 throw new Error(result.error || 'Image upload failed');
