@@ -125,7 +125,7 @@ class APIManager {
         }
     }
 
-    async uploadImage(imageData, storeName) {
+    async uploadImage(imageData, storeName, cartonNumber) {
         if (!this.isOnline) {
             return null;
         }
@@ -136,7 +136,8 @@ class APIManager {
                 body: JSON.stringify({
                     action: 'uploadImage',
                     imageData: imageData,
-                    storeName: storeName
+                    storeName: storeName,
+                    cartonNumber: cartonNumber
                 })
             });
             
@@ -154,6 +155,33 @@ class APIManager {
         } catch (error) {
             console.error('Image upload failed:', error);
             return null;
+        }
+    }
+
+    async updateEntryImageUrl(entryId, imageUrl) {
+        if (!this.isOnline) {
+            return { success: false, error: 'Offline' };
+        }
+        
+        try {
+            const response = await fetch(this.baseURL, {
+                method: 'POST',
+                body: JSON.stringify({
+                    action: 'updateImageUrl',
+                    entryId: entryId,
+                    imageUrl: imageUrl
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const result = await response.json();
+            return result;
+        } catch (error) {
+            console.error('Failed to update image URL:', error);
+            return { success: false, error: error.message };
         }
     }
 

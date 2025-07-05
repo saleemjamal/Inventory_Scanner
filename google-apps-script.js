@@ -30,7 +30,9 @@ function doPost(e) {
       case 'getStores':
         return getStoreList();
       case 'uploadImage':
-        return uploadImage(data.imageData, data.storeName);
+        return uploadImage(data.imageData, data.storeName, data.cartonNumber);
+      case 'updateImageUrl':
+        return updateEntryImageUrl(data.entryId, data.imageUrl);
       default:
         return createResponse(false, 'Unknown action');
     }
@@ -137,12 +139,19 @@ function getStoreNames(spreadsheet) {
   return stores.sort();
 }
 
-function uploadImage(imageData, storeName) {
+function uploadImage(imageData, storeName, cartonNumber) {
   try {
+    // Generate smart filename: StoreName_CartonNumber_timestamp.jpg
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('T')[0] + '_' + 
+                     new Date().toISOString().replace(/[:.]/g, '-').split('T')[1].split('.')[0];
+    const cleanStoreName = storeName.replace(/[^a-zA-Z0-9]/g, '_');
+    const cleanCartonNumber = cartonNumber ? cartonNumber.replace(/[^a-zA-Z0-9]/g, '_') : 'NoCarton';
+    const filename = `${cleanStoreName}_${cleanCartonNumber}_${timestamp}.jpg`;
+    
     const blob = Utilities.newBlob(
       Utilities.base64Decode(imageData.split(',')[1]),
       'image/jpeg',
-      `${Date.now()}_${storeName.replace(/[^a-zA-Z0-9]/g, '_')}.jpg`
+      filename
     );
     
     const folder = DriveApp.getFolderById(DRIVE_FOLDER_ID);
@@ -166,6 +175,48 @@ function uploadImage(imageData, storeName) {
   } catch (error) {
     console.error('Error uploading image:', error);
     return createResponse(false, error.toString());
+  }
+}
+
+function updateEntryImageUrl(entryId, imageUrl) {
+  try {
+    const spreadsheet = SpreadsheetApp.openById(SHEET_ID);
+    
+    // Update master sheet
+    updateImageUrlInSheet(spreadsheet.getSheetByName('All_Inventory'), entryId, imageUrl);
+    
+    // Update store sheets - we need to find which store sheet contains this entry
+    const sheets = spreadsheet.getSheets();
+    sheets.forEach(sheet => {
+      const name = sheet.getName();
+      if (name.startsWith('Store_')) {
+        updateImageUrlInSheet(sheet, entryId, imageUrl);
+      }
+    });
+    
+    return createResponse(true, 'Image URL updated successfully');
+  } catch (error) {
+    console.error('Error updating image URL:', error);
+    return createResponse(false, error.toString());
+  }
+}
+
+function updateImageUrlInSheet(sheet, entryId, imageUrl) {
+  if (!sheet) return;
+  
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  
+  const entryIdCol = headers.indexOf('Entry ID');
+  const imageUrlCol = headers.indexOf('Image URL');
+  
+  if (entryIdCol === -1 || imageUrlCol === -1) return;
+  
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][entryIdCol] === entryId) {
+      sheet.getRange(i + 1, imageUrlCol + 1).setValue(imageUrl);
+      break;
+    }
   }
 }
 

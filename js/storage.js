@@ -25,6 +25,10 @@ class StorageManager {
                 if (!db.objectStoreNames.contains('stores')) {
                     db.createObjectStore('stores', { keyPath: 'name' });
                 }
+                
+                if (!db.objectStoreNames.contains('cartonNumbers')) {
+                    db.createObjectStore('cartonNumbers', { keyPath: 'id' });
+                }
             };
         });
     }
@@ -100,6 +104,64 @@ class StorageManager {
             .split(' ')
             .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
             .join(' ');
+    }
+
+    async saveLastCartonNumber(cartonNumber) {
+        const transaction = this.db.transaction(['cartonNumbers'], 'readwrite');
+        const store = transaction.objectStore('cartonNumbers');
+        
+        const cartonData = {
+            id: 'global',
+            lastCartonNumber: cartonNumber,
+            timestamp: new Date().toISOString()
+        };
+        
+        return store.put(cartonData);
+    }
+
+    async getLastCartonNumber() {
+        const transaction = this.db.transaction(['cartonNumbers'], 'readonly');
+        const store = transaction.objectStore('cartonNumbers');
+        const result = await store.get('global');
+        return result ? result.lastCartonNumber : null;
+    }
+
+    parseCartonNumber(cartonNumber) {
+        if (!cartonNumber || typeof cartonNumber !== 'string') {
+            return null;
+        }
+        
+        // Match patterns like PJ001, ABC123, Store001, etc.
+        const match = cartonNumber.match(/^([A-Za-z]+)(\d+)$/);
+        if (match) {
+            return {
+                prefix: match[1],
+                number: parseInt(match[2], 10),
+                paddingLength: match[2].length
+            };
+        }
+        
+        return null;
+    }
+
+    generateNextCartonNumber(lastCartonNumber) {
+        const parsed = this.parseCartonNumber(lastCartonNumber);
+        if (!parsed) {
+            return null;
+        }
+        
+        const nextNumber = parsed.number + 1;
+        const paddedNumber = nextNumber.toString().padStart(parsed.paddingLength, '0');
+        return parsed.prefix + paddedNumber;
+    }
+
+    async getNextCartonSuggestion() {
+        const lastCarton = await this.getLastCartonNumber();
+        if (!lastCarton) {
+            return null;
+        }
+        
+        return this.generateNextCartonNumber(lastCarton);
     }
 }
 

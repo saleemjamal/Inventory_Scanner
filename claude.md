@@ -31,8 +31,10 @@ Build a Progressive Web App (PWA) for multi-store inventory management. Users ta
 **Form Behavior:**
 - Auto-generate timestamp
 - Store name autocomplete from previous entries
+- Sequential carton number suggestions (global tracking)
 - Form validation before submission
-- Clear form after successful submission
+- Optimistic UI: Clear form immediately after submission
+- Auto-focus to store name field for rapid data entry
 
 ### 3. Google Sheets Integration Architecture
 
@@ -121,7 +123,7 @@ sheet.getRange(row, 1) // Avoid this approach
 ### Image Management
 - Compress images before upload (target: <500KB per image)
 - Organize Google Drive folders by store name
-- Generate unique filenames to prevent conflicts
+- Smart image naming: StoreName_CartonNumber_timestamp.jpg
 - Return public URLs for sheet linking
 
 ### Error Handling
@@ -131,7 +133,9 @@ sheet.getRange(row, 1) // Avoid this approach
 - Fallback to manual entry if auto-features fail
 
 ### Performance
-- Lazy load non-critical features
+- Optimistic UI for instant form clearing
+- Background processing during submissions
+- Auto-focus workflow for rapid data entry
 - Minimize API calls where possible
 - Cache frequently used data locally
 - Optimize image sizes for mobile
@@ -197,6 +201,75 @@ sheet.getRange(row, 1) // Avoid this approach
 - Test thoroughly on actual mobile devices
 - Keep the UI simple and thumb-friendly
 - Prioritize data integrity - better to fail safely than corrupt data
+
+## Troubleshooting
+
+### CORS Errors with Google Apps Script
+If you encounter "blocked by CORS policy" errors when calling your Google Apps Script from the PWA:
+
+**Solution:**
+1. **Add `doOptions` function** to your Google Apps Script:
+```javascript
+function doOptions(e) {
+  return ContentService
+    .createTextOutput("")
+    .setMimeType(ContentService.MimeType.TEXT);
+}
+```
+
+2. **Remove Content-Type headers** from fetch requests in your PWA:
+```javascript
+// CORRECT - No Content-Type header
+fetch(url, {
+  method: 'POST',
+  body: JSON.stringify(data)
+});
+
+// WRONG - Triggers preflight request
+fetch(url, {
+  method: 'POST',
+  headers: {'Content-Type': 'application/json'},
+  body: JSON.stringify(data)
+});
+```
+
+3. **Verify deployment settings:**
+   - Execute as: **Me**
+   - Who has access: **Anyone** (not "Anyone with a Google account")
+   - Redeploy after making changes
+
+**Why this works:**
+- Removing Content-Type headers prevents CORS preflight requests
+- The doOptions function handles any preflight requests that do occur
+- Proper deployment settings ensure external access is allowed
+
+## Sequential Carton Number System
+
+### How It Works
+- **Global tracking**: Carton numbers flow continuously across all stores
+- **Auto-suggestion**: When focusing on carton number field, suggests next number
+- **Override support**: User can type any number to reset the sequence
+- **Pattern recognition**: Supports formats like PJ001, ABC123, Store001, etc.
+
+### Example Flow
+```
+Store A: PJ1001 → PJ1002 → PJ1003
+Store B: (focuses on carton field) → suggests PJ1004
+Store B: (overrides to) PJ2000 → next suggestion becomes PJ2001
+Store C: (focuses on carton field) → suggests PJ2001
+```
+
+### Implementation Details
+- Uses IndexedDB to store last used carton number globally
+- Parses alphanumeric patterns to extract prefix and number
+- Maintains padding (PJ001 → PJ002, not PJ1 → PJ2)
+- Falls back gracefully if pattern doesn't match standard format
+
+### Benefits
+- Prevents duplicate carton numbers across stores
+- Speeds up data entry with intelligent suggestions
+- Maintains flexibility for custom numbering schemes
+- Ensures consistent inventory tracking across locations
 
 ## Phase 2 Features (DO NOT IMPLEMENT YET)
 - OCR integration

@@ -16,6 +16,7 @@ class InventoryApp {
             
             this.bindFormEvents();
             this.setupAutocomplete();
+            this.setupCartonNumberSuggestion();
             this.registerServiceWorker();
             
             await this.loadStores();
@@ -146,6 +147,30 @@ class InventoryApp {
         }, 200);
     }
 
+    setupCartonNumberSuggestion() {
+        const cartonInput = document.getElementById('carton-number');
+        cartonInput.addEventListener('focus', () => this.suggestCartonNumber());
+    }
+
+    async suggestCartonNumber() {
+        const cartonInput = document.getElementById('carton-number');
+        
+        // Only suggest if field is empty
+        if (cartonInput.value.trim() !== '') {
+            return;
+        }
+        
+        try {
+            const suggestion = await this.storageManager.getNextCartonSuggestion();
+            if (suggestion) {
+                cartonInput.value = suggestion;
+                cartonInput.select(); // Select the text so user can easily modify it
+            }
+        } catch (error) {
+            console.error('Failed to get carton suggestion:', error);
+        }
+    }
+
     validateNumericInput(e) {
         const value = e.target.value;
         if (value && isNaN(value)) {
@@ -170,28 +195,41 @@ class InventoryApp {
             if (!this.validateForm(formData)) {
                 return;
             }
+
+            // Save the carton number for next suggestion
+            await this.storageManager.saveLastCartonNumber(formData.cartonNumber);
             
-            const imageUrl = await this.uploadImage(formData.storeName);
+            // Optimistic UI - clear form immediately for faster workflow
+            this.clearForm();
+            this.cameraManager.resetCamera();
+            this.showMessage('Submitting...', 'info');
+            
+            // Focus on store name for next entry
+            document.getElementById('store-name').focus();
+            
+            // Upload image and submit data
+            const timestamp = new Date().toISOString();
+            const entryId = this.apiManager.generateEntryId();
+            
+            const imageUrl = await this.uploadImage(formData.storeName, formData.cartonNumber);
             
             const submissionData = {
                 ...formData,
-                imageUrl: imageUrl,
-                timestamp: new Date().toISOString(),
-                entryId: this.apiManager.generateEntryId()
+                imageUrl: imageUrl || '',
+                timestamp: timestamp,
+                entryId: entryId
             };
             
             const result = await this.apiManager.submitInventoryData(submissionData);
             
             if (result.success) {
                 if (result.offline) {
-                    this.showMessage('Entry saved offline. Will sync when online.', 'info');
+                    this.showMessage('Entry saved offline. Will sync when online.', 'success');
                 } else {
                     this.showMessage('Entry submitted successfully!', 'success');
                 }
                 
                 await this.addNewStoreToCache(formData.storeName);
-                this.clearForm();
-                this.cameraManager.resetCamera();
             } else {
                 throw new Error(result.error || 'Submission failed');
             }
@@ -241,12 +279,12 @@ class InventoryApp {
         return true;
     }
 
-    async uploadImage(storeName) {
+    async uploadImage(storeName, cartonNumber) {
         const imageData = this.cameraManager.getCapturedImage();
         if (!imageData) return null;
         
         try {
-            return await this.apiManager.uploadImage(imageData, storeName);
+            return await this.apiManager.uploadImage(imageData, storeName, cartonNumber);
         } catch (error) {
             console.error('Image upload failed:', error);
             return null;
