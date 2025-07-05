@@ -348,7 +348,8 @@ function verifySessionToken(sessionToken) {
   }
   
   try {
-    const decoded = Utilities.base64Decode(sessionToken, Utilities.Charset.UTF_8);
+    const decodedBytes = Utilities.base64Decode(sessionToken);
+    const decoded = Utilities.newBlob(decodedBytes).getDataAsString();
     const parts = decoded.split(':');
     
     if (parts.length !== 3) {
