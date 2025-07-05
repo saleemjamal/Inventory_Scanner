@@ -9,6 +9,7 @@ class CameraManager {
         
         this.startCameraBtn = document.getElementById('start-camera-btn');
         this.takePhotoBtn = document.getElementById('take-photo-btn');
+        this.savePhotoBtn = document.getElementById('save-photo-btn');
         this.retakePhotoBtn = document.getElementById('retake-photo-btn');
         
         this.bindEvents();
@@ -17,6 +18,7 @@ class CameraManager {
     bindEvents() {
         this.startCameraBtn.addEventListener('click', () => this.startCamera());
         this.takePhotoBtn.addEventListener('click', () => this.takePhoto());
+        this.savePhotoBtn.addEventListener('click', () => this.savePhoto());
         this.retakePhotoBtn.addEventListener('click', () => this.retakePhoto());
     }
 
@@ -65,6 +67,7 @@ class CameraManager {
             this.previewContainer.style.display = 'flex';
             
             this.takePhotoBtn.style.display = 'none';
+            this.savePhotoBtn.style.display = 'inline-block';
             this.retakePhotoBtn.style.display = 'inline-block';
             
             this.stopCamera();
@@ -119,10 +122,64 @@ class CameraManager {
         return { width, height };
     }
 
+    async savePhoto() {
+        if (!this.capturedImageData) {
+            this.showError('No photo to save');
+            return;
+        }
+
+        try {
+            // Generate filename from form data if available
+            const storeName = document.getElementById('store-name')?.value || 'Photo';
+            const cartonNumber = document.getElementById('carton-number')?.value || 'Unknown';
+            const cleanStoreName = storeName.replace(/[^a-zA-Z0-9]/g, '_');
+            const cleanCartonNumber = cartonNumber.replace(/[^a-zA-Z0-9]/g, '_');
+            const filename = `${cleanStoreName}_${cleanCartonNumber}.jpg`;
+
+            // Convert base64 to blob
+            const base64Data = this.capturedImageData.split(',')[1];
+            const byteCharacters = atob(base64Data);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            const blob = new Blob([byteArray], { type: 'image/jpeg' });
+            const file = new File([blob], filename, { type: 'image/jpeg' });
+
+            // Check if Web Share API is supported with files
+            if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                // Mobile: Use native share menu
+                await navigator.share({
+                    files: [file],
+                    title: 'Inventory Photo',
+                    text: `Photo: ${filename}`
+                });
+                this.showSuccess('Photo shared successfully');
+            } else {
+                // Desktop: Download fallback
+                const url = URL.createObjectURL(blob);
+                const downloadLink = document.createElement('a');
+                downloadLink.href = url;
+                downloadLink.download = filename;
+                downloadLink.style.display = 'none';
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                document.body.removeChild(downloadLink);
+                URL.revokeObjectURL(url);
+                this.showSuccess('Photo downloaded to Downloads folder');
+            }
+        } catch (error) {
+            console.error('Error saving photo:', error);
+            this.showError('Failed to save photo: ' + error.message);
+        }
+    }
+
     retakePhoto() {
         console.log('retakePhoto() called - clearing capturedImageData');
         this.capturedImageData = null;
         this.previewContainer.style.display = 'none';
+        this.savePhotoBtn.style.display = 'none';
         this.retakePhotoBtn.style.display = 'none';
         this.startCameraBtn.style.display = 'inline-block';
         
@@ -151,6 +208,17 @@ class CameraManager {
         }, 5000);
     }
 
+    showSuccess(message) {
+        const messageDiv = document.getElementById('message');
+        messageDiv.textContent = message;
+        messageDiv.className = 'message success';
+        messageDiv.style.display = 'block';
+        
+        setTimeout(() => {
+            messageDiv.style.display = 'none';
+        }, 3000);
+    }
+
     resetCamera() {
         console.log('resetCamera() called - clearing capturedImageData');
         this.stopCamera();
@@ -159,6 +227,7 @@ class CameraManager {
         this.previewContainer.style.display = 'none';
         this.startCameraBtn.style.display = 'inline-block';
         this.takePhotoBtn.style.display = 'none';
+        this.savePhotoBtn.style.display = 'none';
         this.retakePhotoBtn.style.display = 'none';
         document.getElementById('inventory-form').style.display = 'none';
     }
