@@ -276,6 +276,7 @@ class InventoryApp {
 
     async handleSubmit(e) {
         e.preventDefault();
+        console.log('Form submission started');
         
         const submitBtn = document.getElementById('submit-btn');
         const btnText = submitBtn.querySelector('.btn-text');
@@ -287,14 +288,18 @@ class InventoryApp {
             btnLoader.style.display = 'block';
             
             const formData = this.getFormData();
+            console.log('Form data:', formData);
             
             if (!this.validateForm(formData)) {
+                console.log('Form validation failed');
                 return;
             }
+            console.log('Form validation passed');
 
             // Save the carton number for next suggestion
             console.log('Saving carton number:', formData.cartonNumber);
             await this.storageManager.saveLastCartonNumber(formData.cartonNumber);
+            console.log('Carton number saved successfully');
             
             // Upload image and submit data FIRST
             const timestamp = new Date().toISOString();
