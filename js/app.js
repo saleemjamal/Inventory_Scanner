@@ -204,19 +204,19 @@ class InventoryApp {
             // Save the carton number for next suggestion
             await this.storageManager.saveLastCartonNumber(formData.cartonNumber);
             
-            // Optimistic UI - clear form immediately for faster workflow
+            // Upload image and submit data FIRST
+            const timestamp = new Date().toISOString();
+            const entryId = this.apiManager.generateEntryId();
+            
+            const imageUrl = await this.uploadImage(formData.storeName, formData.cartonNumber);
+            
+            // Clear form after image upload
             this.clearForm();
             this.cameraManager.resetCamera();
             this.showMessage('Submitting...', 'info');
             
             // Focus on store name for next entry
             document.getElementById('store-name').focus();
-            
-            // Upload image and submit data
-            const timestamp = new Date().toISOString();
-            const entryId = this.apiManager.generateEntryId();
-            
-            const imageUrl = await this.uploadImage(formData.storeName, formData.cartonNumber);
             
             const submissionData = {
                 ...formData,
