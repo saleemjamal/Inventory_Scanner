@@ -402,9 +402,45 @@ textarea {
     line-height: 1.5;
 }
 
-/* Google Sign-In Button Styling */
-.g_id_signin {
-    margin: 16px 0;
+/* Login Form Styling */
+.login-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 60vh;
+    padding: 20px;
+}
+
+.login-form {
+    background-color: white;
+    padding: 40px;
+    border-radius: 12px;
+    border: 1px solid #e0e0e0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    width: 100%;
+    max-width: 400px;
+    text-align: center;
+}
+
+.login-form h2 {
+    color: #333;
+    margin-bottom: 8px;
+    font-size: 24px;
+}
+
+.login-form p {
+    color: #666;
+    margin-bottom: 24px;
+    font-size: 14px;
+}
+
+#login-form .form-group {
+    text-align: left;
+    margin-bottom: 20px;
+}
+
+#login-form .btn {
+    width: 100%;
 }
 
 /* Hide camera section when not authenticated */

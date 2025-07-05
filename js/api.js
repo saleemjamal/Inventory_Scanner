@@ -42,7 +42,7 @@ class APIManager {
                     body: JSON.stringify({
                         action: 'submitInventory',
                         apiKey: this.apiKey,
-                        idToken: window.authManager.getIdToken(),
+                        sessionToken: window.authManager.getSessionToken(),
                         data: data
                     })
                 });
@@ -115,7 +115,7 @@ class APIManager {
                     body: JSON.stringify({
                         action: 'getStores',
                         apiKey: this.apiKey,
-                        idToken: window.authManager.getIdToken()
+                        sessionToken: window.authManager.getSessionToken()
                     })
                 });
                 
@@ -156,7 +156,7 @@ class APIManager {
                 body: JSON.stringify({
                     action: 'uploadImage',
                     apiKey: this.apiKey,
-                    idToken: window.authManager.getIdToken(),
+                    sessionToken: window.authManager.getSessionToken(),
                     imageData: imageData,
                     storeName: storeName,
                     cartonNumber: cartonNumber

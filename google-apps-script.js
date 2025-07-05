@@ -8,8 +8,7 @@ const ALLOWED_DOMAINS = [
   'https://inventoryscan.app',
   'https://www.inventoryscan.app'
 ]; // Allowed domains for requests
-const ALLOWED_EMAIL_DOMAIN = 'poppatjamals.com'; // Allowed email domain
-const GOOGLE_CLIENT_ID = '453460892232-579kkit0k13ks8t7n3qhkhvasb6qoejn.apps.googleusercontent.com'; // Replace with your Google OAuth client ID
+// Removed OAuth constants - now using simple login
 
 function doGet(e) {
   return ContentService
@@ -41,19 +40,19 @@ function doPost(e) {
       return createResponse(false, 'Invalid API key');
     }
     
-    // Google token verification
-    const userInfo = verifyGoogleToken(data.idToken);
-    if (!userInfo) {
-      return createResponse(false, 'Invalid authentication token');
+    // Handle login action separately
+    if (data.action === 'login') {
+      return handleLogin(data.username, data.password);
     }
     
-    // Email domain validation
-    if (!userInfo.email || !userInfo.email.endsWith('@' + ALLOWED_EMAIL_DOMAIN)) {
-      return createResponse(false, `Only @${ALLOWED_EMAIL_DOMAIN} accounts are allowed`);
+    // Session token verification for other actions
+    const userInfo = verifySessionToken(data.sessionToken);
+    if (!userInfo) {
+      return createResponse(false, 'Invalid session token');
     }
     
     // Rate limiting check
-    if (!checkRateLimit(e, userInfo.email)) {
+    if (!checkRateLimit(e, userInfo.username)) {
       return createResponse(false, 'Rate limit exceeded');
     }
     
@@ -83,7 +82,7 @@ function submitInventoryData(data, userInfo) {
     // Add user information to the data
     const dataWithUser = {
       ...data,
-      userEmail: userInfo.email,
+      username: userInfo.username,
       userName: userInfo.name
     };
     
@@ -108,14 +107,14 @@ function writeMasterSheet(spreadsheet, data, storeName) {
   
   if (!masterSheet) {
     masterSheet = spreadsheet.insertSheet('All_Inventory');
-    const headers = ['Timestamp', 'Store Name', 'User Email', 'User Name', 'Image URL', 'Carton Number', 'Item Name', 'Number of Cartons', 'Quantity per Carton', 'Price', 'Notes', 'Entry ID'];
+    const headers = ['Timestamp', 'Store Name', 'Username', 'User Name', 'Image URL', 'Carton Number', 'Item Name', 'Number of Cartons', 'Quantity per Carton', 'Price', 'Notes', 'Entry ID'];
     masterSheet.getRange(1, 1, 1, headers.length).setValues([headers]);
   }
   
   const row = [
     data.timestamp,
     storeName,
-    data.userEmail || '',
+    data.username || '',
     data.userName || '',
     data.imageUrl || '',
     data.cartonNumber,
@@ -136,13 +135,13 @@ function writeStoreSheet(spreadsheet, data, storeName) {
   
   if (!storeSheet) {
     storeSheet = spreadsheet.insertSheet(sheetName);
-    const headers = ['Timestamp', 'User Email', 'User Name', 'Image URL', 'Carton Number', 'Item Name', 'Number of Cartons', 'Quantity per Carton', 'Price', 'Notes', 'Entry ID'];
+    const headers = ['Timestamp', 'Username', 'User Name', 'Image URL', 'Carton Number', 'Item Name', 'Number of Cartons', 'Quantity per Carton', 'Price', 'Notes', 'Entry ID'];
     storeSheet.getRange(1, 1, 1, headers.length).setValues([headers]);
   }
   
   const row = [
     data.timestamp,
-    data.userEmail || '',
+    data.username || '',
     data.userName || '',
     data.imageUrl || '',
     data.cartonNumber,
@@ -282,37 +281,119 @@ function validateSecurity(e) {
   return true;
 }
 
-function verifyGoogleToken(idToken) {
-  if (!idToken) {
+function handleLogin(username, password) {
+  try {
+    const spreadsheet = SpreadsheetApp.openById(SHEET_ID);
+    
+    // Get or create authorized users sheet
+    let usersSheet = spreadsheet.getSheetByName('Authorized_Users');
+    if (!usersSheet) {
+      usersSheet = spreadsheet.insertSheet('Authorized_Users');
+      const headers = ['Username', 'Password', 'Name', 'Email', 'Active', 'Last_Login'];
+      usersSheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+      
+      // Add default admin user (you should change this password!)
+      const defaultUser = ['admin', btoa('admin123'), 'Administrator', 'admin@poppatjamals.com', true, ''];
+      usersSheet.appendRow(defaultUser);
+    }
+    
+    // Find user
+    const userData = usersSheet.getDataRange().getValues();
+    const headers = userData[0];
+    
+    const usernameCol = headers.indexOf('Username');
+    const passwordCol = headers.indexOf('Password');
+    const nameCol = headers.indexOf('Name');
+    const emailCol = headers.indexOf('Email');
+    const activeCol = headers.indexOf('Active');
+    const lastLoginCol = headers.indexOf('Last_Login');
+    
+    for (let i = 1; i < userData.length; i++) {
+      const row = userData[i];
+      if (row[usernameCol] === username && row[passwordCol] === password && row[activeCol]) {
+        // Update last login
+        usersSheet.getRange(i + 1, lastLoginCol + 1).setValue(new Date().toISOString());
+        
+        // Generate session token
+        const sessionToken = generateSessionToken(username);
+        
+        return createResponse(true, 'Login successful', {
+          user: {
+            username: row[usernameCol],
+            name: row[nameCol],
+            email: row[emailCol]
+          },
+          sessionToken: sessionToken
+        });
+      }
+    }
+    
+    return createResponse(false, 'Invalid username or password');
+    
+  } catch (error) {
+    console.error('Login error:', error);
+    return createResponse(false, error.toString());
+  }
+}
+
+function generateSessionToken(username) {
+  const timestamp = Date.now();
+  const random = Math.random().toString(36).substr(2);
+  return btoa(`${username}:${timestamp}:${random}`);
+}
+
+function verifySessionToken(sessionToken) {
+  if (!sessionToken) {
     return null;
   }
   
   try {
-    const url = `https://oauth2.googleapis.com/tokeninfo?id_token=${idToken}`;
-    const response = UrlFetchApp.fetch(url);
-    const payload = JSON.parse(response.getContentText());
+    const decoded = atob(sessionToken);
+    const parts = decoded.split(':');
     
-    // Verify audience matches your client ID
-    if (payload.aud !== GOOGLE_CLIENT_ID) {
-      console.error('Invalid token audience');
+    if (parts.length !== 3) {
       return null;
     }
     
-    // Check if token is expired
-    const now = Math.floor(Date.now() / 1000);
-    if (payload.exp < now) {
-      console.error('Token expired');
+    const [username, timestamp, random] = parts;
+    const now = Date.now();
+    const tokenAge = now - parseInt(timestamp);
+    
+    // Token expires after 24 hours
+    if (tokenAge > 24 * 60 * 60 * 1000) {
       return null;
     }
     
-    return {
-      email: payload.email,
-      name: payload.name,
-      picture: payload.picture,
-      sub: payload.sub
-    };
+    // Get user info from sheet
+    const spreadsheet = SpreadsheetApp.openById(SHEET_ID);
+    const usersSheet = spreadsheet.getSheetByName('Authorized_Users');
+    
+    if (!usersSheet) {
+      return null;
+    }
+    
+    const userData = usersSheet.getDataRange().getValues();
+    const headers = userData[0];
+    
+    const usernameCol = headers.indexOf('Username');
+    const nameCol = headers.indexOf('Name');
+    const emailCol = headers.indexOf('Email');
+    const activeCol = headers.indexOf('Active');
+    
+    for (let i = 1; i < userData.length; i++) {
+      const row = userData[i];
+      if (row[usernameCol] === username && row[activeCol]) {
+        return {
+          username: row[usernameCol],
+          name: row[nameCol],
+          email: row[emailCol]
+        };
+      }
+    }
+    
+    return null;
   } catch (error) {
-    console.error('Token verification error:', error);
+    console.error('Session verification error:', error);
     return null;
   }
 }
