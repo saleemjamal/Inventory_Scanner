@@ -199,29 +199,52 @@ class InventoryApp {
     }
 
     setupCartonNumberSuggestion() {
-        const cartonInput = document.getElementById('carton-number');
-        cartonInput.addEventListener('focus', () => this.suggestCartonNumber());
+        // Load initial carton suggestion on app start
+        this.loadCartonSuggestion();
     }
 
-    async suggestCartonNumber() {
+    async loadCartonSuggestion() {
         const cartonInput = document.getElementById('carton-number');
         
         try {
-            console.log('Getting carton suggestion...');
-            const lastCarton = await this.storageManager.getLastCartonNumber();
-            console.log('Last carton number:', lastCarton);
+            console.log('Loading carton suggestion from sheets...');
             
-            const suggestion = await this.storageManager.getNextCartonSuggestion();
-            console.log('Next suggestion:', suggestion);
+            // Get last carton number from Google Sheets
+            const response = await fetch(this.apiManager.baseURL, {
+                method: 'POST',
+                body: JSON.stringify({
+                    action: 'getLastCartonNumber',
+                    apiKey: this.apiManager.apiKey,
+                    sessionToken: window.authManager.getSessionToken()
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+            console.log('Last carton response:', result);
             
-            if (suggestion) {
-                cartonInput.value = suggestion;
-                cartonInput.select(); // Select the text so user can easily modify it
+            if (result.success && result.lastCartonNumber) {
+                const lastCarton = result.lastCartonNumber;
+                console.log('Last carton number from sheets:', lastCarton);
+                
+                // Generate next suggestion using storage manager's logic
+                const suggestion = this.storageManager.generateNextCartonNumber(lastCarton);
+                console.log('Next suggestion:', suggestion);
+                
+                if (suggestion) {
+                    cartonInput.value = suggestion;
+                    cartonInput.placeholder = suggestion;
+                }
             } else {
-                console.log('No suggestion available');
+                console.log('No previous carton numbers found in sheets');
+                cartonInput.placeholder = 'Enter carton number (e.g., PJ001)';
             }
         } catch (error) {
-            console.error('Failed to get carton suggestion:', error);
+            console.error('Failed to load carton suggestion:', error);
+            cartonInput.placeholder = 'Enter carton number';
         }
     }
 
@@ -276,7 +299,6 @@ class InventoryApp {
 
     async handleSubmit(e) {
         e.preventDefault();
-        console.log('Form submission started');
         
         const submitBtn = document.getElementById('submit-btn');
         const btnText = submitBtn.querySelector('.btn-text');
@@ -288,18 +310,12 @@ class InventoryApp {
             btnLoader.style.display = 'block';
             
             const formData = this.getFormData();
-            console.log('Form data:', formData);
             
             if (!this.validateForm(formData)) {
-                console.log('Form validation failed');
                 return;
             }
-            console.log('Form validation passed');
 
-            // Save the carton number for next suggestion
-            console.log('Saving carton number:', formData.cartonNumber);
-            await this.storageManager.saveLastCartonNumber(formData.cartonNumber);
-            console.log('Carton number saved successfully');
+            // Note: Carton number is now tracked via Google Sheets, not local storage
             
             // Upload image and submit data FIRST
             const timestamp = new Date().toISOString();
@@ -329,6 +345,8 @@ class InventoryApp {
                     this.showMessage('Entry saved offline. Will sync when online.', 'success');
                 } else {
                     this.showMessage('Entry submitted successfully!', 'success');
+                    // Refresh carton suggestion for next entry
+                    await this.loadCartonSuggestion();
                 }
                 
                 await this.addNewStoreToCache(formData.storeName);

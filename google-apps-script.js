@@ -73,6 +73,8 @@ function doPost(e) {
         return updateStoreDetails(data.storeId, data.storeData, userInfo);
       case 'deleteStore':
         return deleteStore(data.storeId, userInfo);
+      case 'getLastCartonNumber':
+        return getLastCartonNumberFromSheets();
       default:
         return createResponse(false, 'Unknown action');
     }
@@ -590,6 +592,54 @@ function deleteStore(storeId, userInfo) {
     return createResponse(false, 'Store not found');
   } catch (error) {
     console.error('Error deleting store:', error);
+    return createResponse(false, error.toString());
+  }
+}
+
+function getLastCartonNumberFromSheets() {
+  try {
+    const spreadsheet = SpreadsheetApp.openById(SHEET_ID);
+    const masterSheet = spreadsheet.getSheetByName('All_Inventory');
+    
+    if (!masterSheet) {
+      return createResponse(true, 'No inventory data found', { lastCartonNumber: null });
+    }
+    
+    const data = masterSheet.getDataRange().getValues();
+    if (data.length <= 1) {
+      return createResponse(true, 'No inventory entries found', { lastCartonNumber: null });
+    }
+    
+    const headers = data[0];
+    const cartonNumberCol = headers.indexOf('Carton Number');
+    const timestampCol = headers.indexOf('Timestamp');
+    
+    if (cartonNumberCol === -1) {
+      return createResponse(false, 'Carton Number column not found');
+    }
+    
+    // Get all carton numbers with timestamps, sorted by most recent
+    const entries = [];
+    for (let i = 1; i < data.length; i++) {
+      const cartonNumber = data[i][cartonNumberCol];
+      const timestamp = data[i][timestampCol];
+      
+      if (cartonNumber && timestamp) {
+        entries.push({
+          cartonNumber: cartonNumber,
+          timestamp: new Date(timestamp)
+        });
+      }
+    }
+    
+    // Sort by timestamp (most recent first)
+    entries.sort((a, b) => b.timestamp - a.timestamp);
+    
+    const lastCartonNumber = entries.length > 0 ? entries[0].cartonNumber : null;
+    
+    return createResponse(true, 'Last carton number retrieved', { lastCartonNumber });
+  } catch (error) {
+    console.error('Error getting last carton number:', error);
     return createResponse(false, error.toString());
   }
 }
