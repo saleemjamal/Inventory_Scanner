@@ -22,6 +22,7 @@ class InventoryApp {
             this.bindFormEvents();
             this.setupAutocomplete();
             this.setupCartonNumberSuggestion();
+            this.setupNavigation();
             this.registerServiceWorker();
             
             await this.loadStores();
@@ -168,6 +169,46 @@ class InventoryApp {
             }
         } catch (error) {
             console.error('Failed to get carton suggestion:', error);
+        }
+    }
+
+    setupNavigation() {
+        const inventoryTab = document.getElementById('inventory-tab');
+        const storesTab = document.getElementById('stores-tab');
+
+        inventoryTab.addEventListener('click', () => this.showInventoryView());
+        storesTab.addEventListener('click', () => this.showStoresView());
+    }
+
+    showInventoryView() {
+        // Update active tab
+        document.getElementById('inventory-tab').classList.add('active');
+        document.getElementById('stores-tab').classList.remove('active');
+
+        // Show inventory sections
+        document.querySelector('.camera-section').style.display = 'block';
+        document.getElementById('inventory-form').style.display = 'block';
+
+        // Hide store management (when we create it)
+        const storeManagement = document.getElementById('store-management');
+        if (storeManagement) {
+            storeManagement.style.display = 'none';
+        }
+    }
+
+    showStoresView() {
+        // Update active tab
+        document.getElementById('stores-tab').classList.add('active');
+        document.getElementById('inventory-tab').classList.remove('active');
+
+        // Hide inventory sections
+        document.querySelector('.camera-section').style.display = 'none';
+        document.getElementById('inventory-form').style.display = 'none';
+
+        // Show store management (when we create it)
+        const storeManagement = document.getElementById('store-management');
+        if (storeManagement) {
+            storeManagement.style.display = 'block';
         }
     }
 

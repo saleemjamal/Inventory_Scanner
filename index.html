@@ -13,6 +13,10 @@
     <div class="container">
         <header>
             <h1>Inventory Scanner</h1>
+            <nav class="main-nav">
+                <button id="inventory-tab" class="nav-tab active">Inventory</button>
+                <button id="stores-tab" class="nav-tab">Stores</button>
+            </nav>
             <div class="header-right">
                 <div class="user-info" id="user-info" style="display: none;">
                     <span id="user-name" class="user-name"></span>
@@ -108,6 +112,66 @@
                     <button type="button" class="btn btn-secondary" id="clear-form-btn">Clear Form</button>
                 </div>
             </form>
+
+            <!-- Store Management Section -->
+            <div id="store-management" style="display: none;">
+                <div class="store-list-section">
+                    <div class="section-header">
+                        <h2>Store Management</h2>
+                        <button id="add-store-btn" class="btn btn-primary">Add New Store</button>
+                    </div>
+                    <div id="stores-grid" class="stores-grid">
+                        <!-- Store cards will be populated here -->
+                    </div>
+                </div>
+
+                <form id="store-form" class="store-form" style="display: none;">
+                    <h3 id="store-form-title">Add New Store</h3>
+                    
+                    <div class="form-group">
+                        <label for="store-form-name">Store Name *</label>
+                        <input type="text" id="store-form-name" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="store-form-number">Store Number</label>
+                        <input type="text" id="store-form-number">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="store-form-address">Address</label>
+                        <textarea id="store-form-address" rows="3"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="store-form-contact-person">Contact Person</label>
+                        <input type="text" id="store-form-contact-person">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="store-form-phone">Phone Number</label>
+                        <input type="tel" id="store-form-phone">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="store-form-email">Email</label>
+                        <input type="email" id="store-form-email">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="store-form-notes">Notes</label>
+                        <textarea id="store-form-notes" rows="2"></textarea>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary" id="save-store-btn">
+                            <span class="btn-text">Save Store</span>
+                            <span class="btn-loader" style="display: none;"></span>
+                        </button>
+                        <button type="button" class="btn btn-secondary" id="cancel-store-btn">Cancel</button>
+                    </div>
+                </form>
+            </div>
 
             <div class="message" id="message" style="display: none;"></div>
         </main>

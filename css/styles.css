@@ -38,6 +38,34 @@ h1 {
     color: #007bff;
 }
 
+/* Navigation Tabs */
+.main-nav {
+    display: flex;
+    gap: 4px;
+}
+
+.nav-tab {
+    padding: 8px 16px;
+    border: none;
+    background-color: transparent;
+    color: #666;
+    cursor: pointer;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.3s;
+}
+
+.nav-tab:hover {
+    background-color: #f8f9fa;
+    color: #007bff;
+}
+
+.nav-tab.active {
+    background-color: #007bff;
+    color: white;
+}
+
 .status-indicator {
     display: flex;
     align-items: center;
@@ -329,6 +357,100 @@ textarea {
     input[type="password"],
     textarea {
         font-size: 16px;
+    }
+}
+
+/* Store Management */
+.store-list-section {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.section-header h2 {
+    margin: 0;
+    font-size: 20px;
+    color: #333;
+}
+
+.stores-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 16px;
+}
+
+.store-card {
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 16px;
+    background: #f8f9fa;
+    transition: shadow 0.3s;
+}
+
+.store-card:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.store-card h3 {
+    margin: 0 0 8px 0;
+    font-size: 16px;
+    color: #333;
+}
+
+.store-card p {
+    margin: 4px 0;
+    font-size: 14px;
+    color: #666;
+}
+
+.store-card-actions {
+    margin-top: 12px;
+    display: flex;
+    gap: 8px;
+}
+
+.store-card-actions .btn {
+    font-size: 12px;
+    padding: 6px 12px;
+}
+
+.store-form {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.store-form h3 {
+    margin: 0 0 20px 0;
+    font-size: 18px;
+    color: #333;
+}
+
+/* Responsive store management */
+@media (max-width: 480px) {
+    .section-header {
+        flex-direction: column;
+        gap: 12px;
+        align-items: stretch;
+    }
+    
+    .stores-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .store-card-actions {
+        flex-direction: column;
     }
 }
 
