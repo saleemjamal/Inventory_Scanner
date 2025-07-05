@@ -65,6 +65,14 @@ function doPost(e) {
         return uploadImage(data.imageData, data.storeName, data.cartonNumber);
       case 'updateImageUrl':
         return updateEntryImageUrl(data.entryId, data.imageUrl);
+      case 'saveStoreDetails':
+        return saveStoreDetails(data.storeData, userInfo);
+      case 'getStoreDetails':
+        return getStoreDetails();
+      case 'updateStoreDetails':
+        return updateStoreDetails(data.storeId, data.storeData, userInfo);
+      case 'deleteStore':
+        return deleteStore(data.storeId, userInfo);
       default:
         return createResponse(false, 'Unknown action');
     }
@@ -431,6 +439,158 @@ function checkRateLimit(e, userEmail) {
   } catch (error) {
     console.error('Rate limiting error:', error);
     return true; // Allow request on error to avoid blocking legitimate users
+  }
+}
+
+// Store Management Functions
+function saveStoreDetails(storeData, userInfo) {
+  try {
+    const spreadsheet = SpreadsheetApp.openById(SHEET_ID);
+    let storeSheet = spreadsheet.getSheetByName('Store_Details');
+    
+    if (!storeSheet) {
+      storeSheet = spreadsheet.insertSheet('Store_Details');
+      const headers = ['Store ID', 'Store Name', 'Store Number', 'Address', 'Contact Person', 'Phone', 'Email', 'Notes', 'Created By', 'Created Date', 'Updated By', 'Updated Date'];
+      storeSheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+    }
+    
+    // Check if store already exists
+    const data = storeSheet.getDataRange().getValues();
+    const headers = data[0];
+    const storeNameCol = headers.indexOf('Store Name');
+    
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][storeNameCol] === storeData.storeName) {
+        return createResponse(false, 'Store with this name already exists');
+      }
+    }
+    
+    // Generate unique store ID
+    const storeId = 'STORE_' + Date.now();
+    const timestamp = new Date().toISOString();
+    
+    const row = [
+      storeId,
+      storeData.storeName,
+      storeData.storeNumber || '',
+      storeData.address || '',
+      storeData.contactPerson || '',
+      storeData.phone || '',
+      storeData.email || '',
+      storeData.notes || '',
+      userInfo.username,
+      timestamp,
+      userInfo.username,
+      timestamp
+    ];
+    
+    storeSheet.appendRow(row);
+    
+    return createResponse(true, 'Store details saved successfully', { storeId });
+  } catch (error) {
+    console.error('Error saving store details:', error);
+    return createResponse(false, error.toString());
+  }
+}
+
+function getStoreDetails() {
+  try {
+    const spreadsheet = SpreadsheetApp.openById(SHEET_ID);
+    const storeSheet = spreadsheet.getSheetByName('Store_Details');
+    
+    if (!storeSheet) {
+      return createResponse(true, 'Store details retrieved', { stores: [] });
+    }
+    
+    const data = storeSheet.getDataRange().getValues();
+    if (data.length <= 1) {
+      return createResponse(true, 'Store details retrieved', { stores: [] });
+    }
+    
+    const headers = data[0];
+    const stores = [];
+    
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const store = {};
+      
+      headers.forEach((header, index) => {
+        store[header.replace(/\s+/g, '').toLowerCase()] = row[index];
+      });
+      
+      stores.push(store);
+    }
+    
+    return createResponse(true, 'Store details retrieved', { stores });
+  } catch (error) {
+    console.error('Error getting store details:', error);
+    return createResponse(false, error.toString());
+  }
+}
+
+function updateStoreDetails(storeId, storeData, userInfo) {
+  try {
+    const spreadsheet = SpreadsheetApp.openById(SHEET_ID);
+    const storeSheet = spreadsheet.getSheetByName('Store_Details');
+    
+    if (!storeSheet) {
+      return createResponse(false, 'Store details sheet not found');
+    }
+    
+    const data = storeSheet.getDataRange().getValues();
+    const headers = data[0];
+    const storeIdCol = headers.indexOf('Store ID');
+    
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][storeIdCol] === storeId) {
+        // Update the row
+        const timestamp = new Date().toISOString();
+        
+        storeSheet.getRange(i + 1, headers.indexOf('Store Name') + 1).setValue(storeData.storeName);
+        storeSheet.getRange(i + 1, headers.indexOf('Store Number') + 1).setValue(storeData.storeNumber || '');
+        storeSheet.getRange(i + 1, headers.indexOf('Address') + 1).setValue(storeData.address || '');
+        storeSheet.getRange(i + 1, headers.indexOf('Contact Person') + 1).setValue(storeData.contactPerson || '');
+        storeSheet.getRange(i + 1, headers.indexOf('Phone') + 1).setValue(storeData.phone || '');
+        storeSheet.getRange(i + 1, headers.indexOf('Email') + 1).setValue(storeData.email || '');
+        storeSheet.getRange(i + 1, headers.indexOf('Notes') + 1).setValue(storeData.notes || '');
+        storeSheet.getRange(i + 1, headers.indexOf('Updated By') + 1).setValue(userInfo.username);
+        storeSheet.getRange(i + 1, headers.indexOf('Updated Date') + 1).setValue(timestamp);
+        
+        return createResponse(true, 'Store details updated successfully');
+      }
+    }
+    
+    return createResponse(false, 'Store not found');
+  } catch (error) {
+    console.error('Error updating store details:', error);
+    return createResponse(false, error.toString());
+  }
+}
+
+function deleteStore(storeId, userInfo) {
+  try {
+    const spreadsheet = SpreadsheetApp.openById(SHEET_ID);
+    const storeSheet = spreadsheet.getSheetByName('Store_Details');
+    
+    if (!storeSheet) {
+      return createResponse(false, 'Store details sheet not found');
+    }
+    
+    const data = storeSheet.getDataRange().getValues();
+    const headers = data[0];
+    const storeIdCol = headers.indexOf('Store ID');
+    
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][storeIdCol] === storeId) {
+        storeSheet.deleteRow(i + 1);
+        return createResponse(true, 'Store deleted successfully');
+      }
+    }
+    
+    return createResponse(false, 'Store not found');
+  } catch (error) {
+    console.error('Error deleting store:', error);
+    return createResponse(false, error.toString());
   }
 }
 

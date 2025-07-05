@@ -3,6 +3,7 @@ class InventoryApp {
         this.storageManager = new StorageManager();
         this.cameraManager = new CameraManager();
         this.apiManager = new APIManager();
+        this.storeManager = new StoreManager(this.apiManager);
         this.currentStores = [];
         this.selectedSuggestionIndex = -1;
         
@@ -13,6 +14,7 @@ class InventoryApp {
         try {
             await this.storageManager.init();
             window.storageManager = this.storageManager;
+            window.storeManager = this.storeManager;
             
             // Initialize authentication first
             if (window.authManager) {
@@ -62,10 +64,53 @@ class InventoryApp {
 
     async loadStores() {
         try {
-            this.currentStores = await this.apiManager.getStoreList();
+            // Try to get stores from Store_Details sheet first
+            const storeDetailsResponse = await this.getStoreDetailsForAutocomplete();
+            
+            if (storeDetailsResponse && storeDetailsResponse.length > 0) {
+                // Use store names from Store_Details sheet
+                this.currentStores = storeDetailsResponse.map(store => store.storename).filter(name => name);
+            } else {
+                // Fallback to existing method (store sheet names)
+                this.currentStores = await this.apiManager.getStoreList();
+            }
         } catch (error) {
             console.error('Failed to load stores:', error);
-            this.currentStores = [];
+            // Fallback to existing method
+            try {
+                this.currentStores = await this.apiManager.getStoreList();
+            } catch (fallbackError) {
+                console.error('Fallback store loading failed:', fallbackError);
+                this.currentStores = [];
+            }
+        }
+    }
+
+    async getStoreDetailsForAutocomplete() {
+        try {
+            const response = await fetch(this.apiManager.baseURL, {
+                method: 'POST',
+                body: JSON.stringify({
+                    action: 'getStoreDetails',
+                    apiKey: this.apiManager.apiKey,
+                    sessionToken: window.authManager.getSessionToken()
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+            
+            if (result.success) {
+                return result.stores || [];
+            } else {
+                throw new Error(result.message || 'Failed to load store details');
+            }
+        } catch (error) {
+            console.error('Error getting store details for autocomplete:', error);
+            return null;
         }
     }
 
@@ -196,7 +241,7 @@ class InventoryApp {
         }
     }
 
-    showStoresView() {
+    async showStoresView() {
         // Update active tab
         document.getElementById('stores-tab').classList.add('active');
         document.getElementById('inventory-tab').classList.remove('active');
@@ -205,10 +250,12 @@ class InventoryApp {
         document.querySelector('.camera-section').style.display = 'none';
         document.getElementById('inventory-form').style.display = 'none';
 
-        // Show store management (when we create it)
+        // Show store management
         const storeManagement = document.getElementById('store-management');
         if (storeManagement) {
             storeManagement.style.display = 'block';
+            // Load stores when showing the store management view
+            await this.storeManager.loadStores();
         }
     }
 
