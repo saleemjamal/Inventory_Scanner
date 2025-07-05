@@ -14,6 +14,11 @@ class InventoryApp {
             await this.storageManager.init();
             window.storageManager = this.storageManager;
             
+            // Initialize authentication first
+            if (window.authManager) {
+                await window.authManager.init();
+            }
+            
             this.bindFormEvents();
             this.setupAutocomplete();
             this.setupCartonNumberSuggestion();

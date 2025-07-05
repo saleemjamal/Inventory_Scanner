@@ -3,6 +3,13 @@
 
 const SHEET_ID = '1369Pn_Fv45QWrJG8HDpVq4JV1HDc9SWZgb3ewJ03gZ4'; // Replace with your Google Sheet ID
 const DRIVE_FOLDER_ID = '18v68VjLBv7qIgU_GfK7fIJS_BX2Sf1nF'; // Replace with your Google Drive folder ID
+const API_KEY = 'INV_SCAN_2025_SECURE_KEY_poppatjamals_xyz789'; // API key for authentication
+const ALLOWED_DOMAINS = [
+  'https://inventoryscan.app',
+  'https://www.inventoryscan.app'
+]; // Allowed domains for requests
+const ALLOWED_EMAIL_DOMAIN = 'poppatjamals.com'; // Allowed email domain
+const GOOGLE_CLIENT_ID = '453460892232-579kkit0k13ks8t7n3qhkhvasb6qoejn.apps.googleusercontent.com'; // Replace with your Google OAuth client ID
 
 function doGet(e) {
   return ContentService
@@ -22,11 +29,37 @@ function doOptions(e) {
 
 function doPost(e) {
   try {
+    // Security validations
+    if (!validateSecurity(e)) {
+      return createResponse(false, 'Access denied');
+    }
+    
     const data = JSON.parse(e.postData.contents);
+    
+    // API key validation
+    if (!data.apiKey || data.apiKey !== API_KEY) {
+      return createResponse(false, 'Invalid API key');
+    }
+    
+    // Google token verification
+    const userInfo = verifyGoogleToken(data.idToken);
+    if (!userInfo) {
+      return createResponse(false, 'Invalid authentication token');
+    }
+    
+    // Email domain validation
+    if (!userInfo.email || !userInfo.email.endsWith('@' + ALLOWED_EMAIL_DOMAIN)) {
+      return createResponse(false, `Only @${ALLOWED_EMAIL_DOMAIN} accounts are allowed`);
+    }
+    
+    // Rate limiting check
+    if (!checkRateLimit(e, userInfo.email)) {
+      return createResponse(false, 'Rate limit exceeded');
+    }
     
     switch (data.action) {
       case 'submitInventory':
-        return submitInventoryData(data.data);
+        return submitInventoryData(data.data, userInfo);
       case 'getStores':
         return getStoreList();
       case 'uploadImage':
@@ -42,16 +75,23 @@ function doPost(e) {
   }
 }
 
-function submitInventoryData(data) {
+function submitInventoryData(data, userInfo) {
   try {
     const spreadsheet = SpreadsheetApp.openById(SHEET_ID);
     const storeName = standardizeStoreName(data.storeName);
     
+    // Add user information to the data
+    const dataWithUser = {
+      ...data,
+      userEmail: userInfo.email,
+      userName: userInfo.name
+    };
+    
     // Write to master sheet
-    writeMasterSheet(spreadsheet, data, storeName);
+    writeMasterSheet(spreadsheet, dataWithUser, storeName);
     
     // Write to store-specific sheet
-    writeStoreSheet(spreadsheet, data, storeName);
+    writeStoreSheet(spreadsheet, dataWithUser, storeName);
     
     // Get updated store list
     const stores = getStoreNames(spreadsheet);
@@ -68,13 +108,15 @@ function writeMasterSheet(spreadsheet, data, storeName) {
   
   if (!masterSheet) {
     masterSheet = spreadsheet.insertSheet('All_Inventory');
-    const headers = ['Timestamp', 'Store Name', 'Image URL', 'Carton Number', 'Item Name', 'Number of Cartons', 'Quantity per Carton', 'Price', 'Notes', 'Entry ID'];
+    const headers = ['Timestamp', 'Store Name', 'User Email', 'User Name', 'Image URL', 'Carton Number', 'Item Name', 'Number of Cartons', 'Quantity per Carton', 'Price', 'Notes', 'Entry ID'];
     masterSheet.getRange(1, 1, 1, headers.length).setValues([headers]);
   }
   
   const row = [
     data.timestamp,
     storeName,
+    data.userEmail || '',
+    data.userName || '',
     data.imageUrl || '',
     data.cartonNumber,
     data.itemName,
@@ -94,12 +136,14 @@ function writeStoreSheet(spreadsheet, data, storeName) {
   
   if (!storeSheet) {
     storeSheet = spreadsheet.insertSheet(sheetName);
-    const headers = ['Timestamp', 'Image URL', 'Carton Number', 'Item Name', 'Number of Cartons', 'Quantity per Carton', 'Price', 'Notes', 'Entry ID'];
+    const headers = ['Timestamp', 'User Email', 'User Name', 'Image URL', 'Carton Number', 'Item Name', 'Number of Cartons', 'Quantity per Carton', 'Price', 'Notes', 'Entry ID'];
     storeSheet.getRange(1, 1, 1, headers.length).setValues([headers]);
   }
   
   const row = [
     data.timestamp,
+    data.userEmail || '',
+    data.userName || '',
     data.imageUrl || '',
     data.cartonNumber,
     data.itemName,
@@ -225,6 +269,89 @@ function standardizeStoreName(name) {
     .split(' ')
     .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
     .join(' ');
+}
+
+function validateSecurity(e) {
+  // Domain restriction
+  const origin = e.parameter.origin || e.parameters.origin;
+  if (origin && !ALLOWED_DOMAINS.includes(origin)) {
+    console.error('Blocked request from unauthorized origin:', origin);
+    return false;
+  }
+  
+  return true;
+}
+
+function verifyGoogleToken(idToken) {
+  if (!idToken) {
+    return null;
+  }
+  
+  try {
+    const url = `https://oauth2.googleapis.com/tokeninfo?id_token=${idToken}`;
+    const response = UrlFetchApp.fetch(url);
+    const payload = JSON.parse(response.getContentText());
+    
+    // Verify audience matches your client ID
+    if (payload.aud !== GOOGLE_CLIENT_ID) {
+      console.error('Invalid token audience');
+      return null;
+    }
+    
+    // Check if token is expired
+    const now = Math.floor(Date.now() / 1000);
+    if (payload.exp < now) {
+      console.error('Token expired');
+      return null;
+    }
+    
+    return {
+      email: payload.email,
+      name: payload.name,
+      picture: payload.picture,
+      sub: payload.sub
+    };
+  } catch (error) {
+    console.error('Token verification error:', error);
+    return null;
+  }
+}
+
+function checkRateLimit(e, userEmail) {
+  try {
+    const properties = PropertiesService.getScriptProperties();
+    const now = Date.now();
+    const hourWindow = 60 * 60 * 1000; // 1 hour
+    const maxRequestsPerHour = 100;
+    
+    // Use user email as identifier
+    const identifier = userEmail || 'anonymous';
+    const key = `rate_limit_${identifier}`;
+    
+    // Get current request data
+    const requestData = properties.getProperty(key);
+    let requests = requestData ? JSON.parse(requestData) : { count: 0, window: now };
+    
+    // Reset if window has passed
+    if (now - requests.window > hourWindow) {
+      requests = { count: 1, window: now };
+    } else {
+      requests.count++;
+    }
+    
+    // Check if limit exceeded
+    if (requests.count > maxRequestsPerHour) {
+      console.error('Rate limit exceeded for:', identifier);
+      return false;
+    }
+    
+    // Save updated count
+    properties.setProperty(key, JSON.stringify(requests));
+    return true;
+  } catch (error) {
+    console.error('Rate limiting error:', error);
+    return true; // Allow request on error to avoid blocking legitimate users
+  }
 }
 
 function createResponse(success, message, data = {}) {

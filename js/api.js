@@ -1,6 +1,7 @@
 class APIManager {
     constructor() {
         this.baseURL = 'https://script.google.com/macros/s/AKfycbyXV4pTyOTurXXNLvv29VknFel40-9gdXJhcRPQYJ6HptQcvW4klcjgIHG5xbpnZN6qfA/exec';
+        this.apiKey = 'INV_SCAN_2025_SECURE_KEY_poppatjamals_xyz789';
         this.isOnline = navigator.onLine;
         
         window.addEventListener('online', () => {
@@ -31,10 +32,17 @@ class APIManager {
     async submitInventoryData(data) {
         if (this.isOnline) {
             try {
+                // Check authentication
+                if (!window.authManager || !window.authManager.isAuthenticated()) {
+                    throw new Error('Authentication required');
+                }
+
                 const response = await fetch(this.baseURL, {
                     method: 'POST',
                     body: JSON.stringify({
                         action: 'submitInventory',
+                        apiKey: this.apiKey,
+                        idToken: window.authManager.getIdToken(),
                         data: data
                     })
                 });
@@ -97,10 +105,17 @@ class APIManager {
     async getStoreList() {
         if (this.isOnline) {
             try {
+                // Check authentication
+                if (!window.authManager || !window.authManager.isAuthenticated()) {
+                    return await window.storageManager.getStores();
+                }
+
                 const response = await fetch(this.baseURL, {
                     method: 'POST',
                     body: JSON.stringify({
-                        action: 'getStores'
+                        action: 'getStores',
+                        apiKey: this.apiKey,
+                        idToken: window.authManager.getIdToken()
                     })
                 });
                 
@@ -131,10 +146,17 @@ class APIManager {
         }
         
         try {
+            // Check authentication
+            if (!window.authManager || !window.authManager.isAuthenticated()) {
+                throw new Error('Authentication required');
+            }
+
             const response = await fetch(this.baseURL, {
                 method: 'POST',
                 body: JSON.stringify({
                     action: 'uploadImage',
+                    apiKey: this.apiKey,
+                    idToken: window.authManager.getIdToken(),
                     imageData: imageData,
                     storeName: storeName,
                     cartonNumber: cartonNumber
@@ -168,6 +190,7 @@ class APIManager {
                 method: 'POST',
                 body: JSON.stringify({
                     action: 'updateImageUrl',
+                    apiKey: this.apiKey,
                     entryId: entryId,
                     imageUrl: imageUrl
                 })
