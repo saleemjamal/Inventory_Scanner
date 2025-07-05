@@ -160,11 +160,6 @@ class InventoryApp {
     async suggestCartonNumber() {
         const cartonInput = document.getElementById('carton-number');
         
-        // Only suggest if field is empty
-        if (cartonInput.value.trim() !== '') {
-            return;
-        }
-        
         try {
             const suggestion = await this.storageManager.getNextCartonSuggestion();
             if (suggestion) {

@@ -184,12 +184,10 @@ function getStoreNames(spreadsheet) {
 
 function uploadImage(imageData, storeName, cartonNumber) {
   try {
-    // Generate smart filename: StoreName_CartonNumber_timestamp.jpg
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('T')[0] + '_' + 
-                     new Date().toISOString().replace(/[:.]/g, '-').split('T')[1].split('.')[0];
+    // Generate simple filename: StoreName_CartonNumber.jpg
     const cleanStoreName = storeName.replace(/[^a-zA-Z0-9]/g, '_');
     const cleanCartonNumber = cartonNumber ? cartonNumber.replace(/[^a-zA-Z0-9]/g, '_') : 'NoCarton';
-    const filename = `${cleanStoreName}_${cleanCartonNumber}_${timestamp}.jpg`;
+    const filename = `${cleanStoreName}_${cleanCartonNumber}.jpg`;
     
     const blob = Utilities.newBlob(
       Utilities.base64Decode(imageData.split(',')[1]),
