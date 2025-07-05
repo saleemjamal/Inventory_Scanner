@@ -1,6 +1,6 @@
 class APIManager {
     constructor() {
-        this.baseURL = 'https://script.google.com/macros/s/AKfycbyXV4pTyOTurXXNLvv29VknFel40-9gdXJhcRPQYJ6HptQcvW4klcjgIHG5xbpnZN6qfA/exec';
+        this.baseURL = 'https://script.google.com/macros/s/AKfycbwiQ3iAQLjHGiYwmgtMEnUr-qcAMkHeEOWcQp2dXT9KMkyZkJThI7xf0N1YuCL17ets2A/exec';
         this.apiKey = 'INV_SCAN_2025_SECURE_KEY_poppatjamals_xyz789';
         this.isOnline = navigator.onLine;
         
