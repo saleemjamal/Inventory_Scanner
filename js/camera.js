@@ -9,7 +9,6 @@ class CameraManager {
         
         this.startCameraBtn = document.getElementById('start-camera-btn');
         this.takePhotoBtn = document.getElementById('take-photo-btn');
-        this.savePhotoBtn = document.getElementById('save-photo-btn');
         this.retakePhotoBtn = document.getElementById('retake-photo-btn');
         
         this.bindEvents();
@@ -18,7 +17,6 @@ class CameraManager {
     bindEvents() {
         this.startCameraBtn.addEventListener('click', () => this.startCamera());
         this.takePhotoBtn.addEventListener('click', () => this.takePhoto());
-        this.savePhotoBtn.addEventListener('click', () => this.savePhoto());
         this.retakePhotoBtn.addEventListener('click', () => this.retakePhoto());
     }
 
@@ -67,7 +65,6 @@ class CameraManager {
             this.previewContainer.style.display = 'flex';
             
             this.takePhotoBtn.style.display = 'none';
-            this.savePhotoBtn.style.display = 'inline-block';
             this.retakePhotoBtn.style.display = 'inline-block';
             
             this.stopCamera();
@@ -122,25 +119,41 @@ class CameraManager {
         return { width, height };
     }
 
-    async savePhoto() {
+
+    retakePhoto() {
+        console.log('retakePhoto() called - clearing capturedImageData');
+        this.capturedImageData = null;
+        this.previewContainer.style.display = 'none';
+        this.retakePhotoBtn.style.display = 'none';
+        this.startCameraBtn.style.display = 'inline-block';
+        
+        document.getElementById('inventory-form').style.display = 'none';
+    }
+
+    stopCamera() {
+        if (this.stream) {
+            this.stream.getTracks().forEach(track => track.stop());
+            this.stream = null;
+        }
+    }
+
+    getCapturedImage() {
+        return this.capturedImageData;
+    }
+
+    async savePhotoToLocal(storeName, cartonNumber) {
         if (!this.capturedImageData) {
-            this.showError('No photo to save');
-            return;
+            return { success: false, error: 'No photo to save' };
         }
 
         try {
-            // Generate filename - use form data if available, otherwise timestamp
-            const storeName = document.getElementById('store-name')?.value?.trim();
-            const cartonNumber = document.getElementById('carton-number')?.value?.trim();
-            
+            // Generate filename - prefer form data, fallback to timestamp
             let filename;
             if (storeName && cartonNumber) {
-                // Use form data if both fields are filled
                 const cleanStoreName = storeName.replace(/[^a-zA-Z0-9]/g, '_');
                 const cleanCartonNumber = cartonNumber.replace(/[^a-zA-Z0-9]/g, '_');
                 filename = `${cleanStoreName}_${cleanCartonNumber}.jpg`;
             } else {
-                // Use timestamp if form isn't filled yet
                 const now = new Date();
                 const timestamp = now.getFullYear() + 
                     String(now.getMonth() + 1).padStart(2, '0') + 
@@ -173,7 +186,7 @@ class CameraManager {
                     title: 'Inventory Photo',
                     text: `Photo: ${filename}`
                 });
-                this.showSuccess('Photo shared successfully');
+                return { success: true, message: 'Photo shared successfully' };
             } else {
                 // Desktop/Windows: Always download directly
                 const url = URL.createObjectURL(blob);
@@ -185,34 +198,12 @@ class CameraManager {
                 downloadLink.click();
                 document.body.removeChild(downloadLink);
                 URL.revokeObjectURL(url);
-                this.showSuccess('Photo downloaded to Downloads folder');
+                return { success: true, message: 'Photo saved to Downloads folder' };
             }
         } catch (error) {
-            console.error('Error saving photo:', error);
-            this.showError('Failed to save photo: ' + error.message);
+            console.error('Error saving photo locally:', error);
+            return { success: false, error: error.message };
         }
-    }
-
-    retakePhoto() {
-        console.log('retakePhoto() called - clearing capturedImageData');
-        this.capturedImageData = null;
-        this.previewContainer.style.display = 'none';
-        this.savePhotoBtn.style.display = 'none';
-        this.retakePhotoBtn.style.display = 'none';
-        this.startCameraBtn.style.display = 'inline-block';
-        
-        document.getElementById('inventory-form').style.display = 'none';
-    }
-
-    stopCamera() {
-        if (this.stream) {
-            this.stream.getTracks().forEach(track => track.stop());
-            this.stream = null;
-        }
-    }
-
-    getCapturedImage() {
-        return this.capturedImageData;
     }
 
     showError(message) {
@@ -245,7 +236,6 @@ class CameraManager {
         this.previewContainer.style.display = 'none';
         this.startCameraBtn.style.display = 'inline-block';
         this.takePhotoBtn.style.display = 'none';
-        this.savePhotoBtn.style.display = 'none';
         this.retakePhotoBtn.style.display = 'none';
         document.getElementById('inventory-form').style.display = 'none';
     }

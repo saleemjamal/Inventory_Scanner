@@ -317,7 +317,15 @@ class InventoryApp {
 
             // Note: Carton number is now tracked via Google Sheets, not local storage
             
-            // Upload image and submit data FIRST
+            // Save photo locally first (mobile share or desktop download)
+            const saveResult = await this.cameraManager.savePhotoToLocal(formData.storeName, formData.cartonNumber);
+            if (saveResult.success) {
+                console.log('Photo saved locally:', saveResult.message);
+            } else {
+                console.warn('Failed to save photo locally:', saveResult.error);
+            }
+            
+            // Upload image and submit data
             const timestamp = new Date().toISOString();
             const entryId = this.apiManager.generateEntryId();
             
@@ -341,13 +349,21 @@ class InventoryApp {
             const result = await this.apiManager.submitInventoryData(submissionData);
             
             if (result.success) {
+                let message;
                 if (result.offline) {
-                    this.showMessage('Entry saved offline. Will sync when online.', 'success');
+                    message = 'Entry saved offline. Will sync when online.';
                 } else {
-                    this.showMessage('Entry submitted successfully!', 'success');
+                    message = 'Entry submitted successfully!';
                     // Refresh carton suggestion for next entry
                     await this.loadCartonSuggestion();
                 }
+                
+                // Add photo save info to success message
+                if (saveResult.success) {
+                    message += ` Photo ${saveResult.message.toLowerCase()}.`;
+                }
+                
+                this.showMessage(message, 'success');
                 
                 await this.addNewStoreToCache(formData.storeName);
             } else {
