@@ -1,8 +1,8 @@
 // Google Apps Script for Inventory Scanner PWA
 // Deploy this as a web app with public access
 
-const SHEET_ID = 'YOUR_GOOGLE_SHEET_ID'; // Replace with your Google Sheet ID
-const DRIVE_FOLDER_ID = 'YOUR_DRIVE_FOLDER_ID'; // Replace with your Google Drive folder ID
+const SHEET_ID = '1369Pn_Fv45QWrJG8HDpVq4JV1HDc9SWZgb3ewJ03gZ4'; // Replace with your Google Sheet ID
+const DRIVE_FOLDER_ID = '18v68VjLBv7qIgU_GfK7fIJS_BX2Sf1nF'; // Replace with your Google Drive folder ID
 
 function doGet(e) {
   return ContentService

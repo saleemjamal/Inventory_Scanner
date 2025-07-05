@@ -1,6 +1,6 @@
 class APIManager {
     constructor() {
-        this.baseURL = 'https://script.google.com/macros/s/AKfycbxLEU4Mo42WGIOilHP3Z3vCz0UealdnyKZ_-ti4I2Bxqx-ShfF5QHTikZ-GGsC66I0T2Q/exec';
+        this.baseURL = 'https://script.google.com/macros/s/AKfycbyXV4pTyOTurXXNLvv29VknFel40-9gdXJhcRPQYJ6HptQcvW4klcjgIHG5xbpnZN6qfA/exec';
         this.isOnline = navigator.onLine;
         
         window.addEventListener('online', () => {
