@@ -86,7 +86,7 @@ class AuthManager {
             const hashedPassword = btoa(password);
             
             // Use API URL and key directly for login
-            const apiURL = window.apiManager?.baseURL || 'https://script.google.com/macros/s/AKfycbyym69e8KadsEfPVO3ndM5IMWfIR-W8SxhwA8qHTQCxQ0uV1-RofkxeL53f5XNGU4Krfg/exec';
+            const apiURL = window.apiManager?.baseURL || 'https://script.google.com/macros/s/AKfycbxc03A7LVQejuaK1xYtlkrYsj2yPDK8dXZhiuivjFzehTiksvYNX6Ym6UQCsWBtA-QtOQ/exec';
             const apiKey = window.apiManager?.apiKey || 'INV_SCAN_2025_SECURE_KEY_poppatjamals_xyz789';
             
             const response = await fetch(apiURL, {
