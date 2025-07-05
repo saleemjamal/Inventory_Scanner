@@ -45,15 +45,19 @@ class CameraManager {
     }
 
     takePhoto() {
+        console.log('takePhoto() called, stream exists:', !!this.stream);
         if (!this.stream) return;
         
         const context = this.canvas.getContext('2d');
         this.canvas.width = this.videoElement.videoWidth;
         this.canvas.height = this.videoElement.videoHeight;
         
+        console.log('Canvas dimensions:', this.canvas.width, 'x', this.canvas.height);
+        
         context.drawImage(this.videoElement, 0, 0);
         
         this.compressImage((compressedDataUrl) => {
+            console.log('Image compressed, data length:', compressedDataUrl ? compressedDataUrl.length : 'null');
             this.capturedImageData = compressedDataUrl;
             this.previewImage.src = compressedDataUrl;
             
@@ -67,6 +71,8 @@ class CameraManager {
             
             document.getElementById('inventory-form').style.display = 'block';
             document.getElementById('store-name').focus();
+            
+            console.log('Photo capture completed, capturedImageData set:', !!this.capturedImageData);
         });
     }
 
