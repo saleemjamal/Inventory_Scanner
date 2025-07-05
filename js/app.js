@@ -286,7 +286,8 @@ class InventoryApp {
 
     async uploadImage(storeName, cartonNumber) {
         const imageData = this.cameraManager.getCapturedImage();
-        console.log('Captured image data:', imageData ? 'Image found' : 'No image captured');
+        console.log('Captured image data:', imageData ? `Image found (${imageData.length} chars)` : 'No image captured');
+        console.log('Camera manager capturedImageData:', this.cameraManager.capturedImageData ? 'exists' : 'null');
         
         if (!imageData) {
             console.log('No image to upload - skipping image upload');
