@@ -83,11 +83,15 @@ class AuthManager {
             // Hash password for transmission (simple base64 for demo)
             const hashedPassword = btoa(password);
             
-            const response = await fetch(window.apiManager?.baseURL || '', {
+            // Use API URL and key directly for login
+            const apiURL = window.apiManager?.baseURL || 'https://script.google.com/macros/s/AKfycbzxTCnTrYzZvuf5WOOhqF_1k0sXOmbaOGl2eY3REnKXdPxnruzGorfJf4v4bmHwYkmS2Q/exec';
+            const apiKey = window.apiManager?.apiKey || 'INV_SCAN_2025_SECURE_KEY_poppatjamals_xyz789';
+            
+            const response = await fetch(apiURL, {
                 method: 'POST',
                 body: JSON.stringify({
                     action: 'login',
-                    apiKey: window.apiManager?.apiKey || '',
+                    apiKey: apiKey,
                     username: username,
                     password: hashedPassword
                 })
