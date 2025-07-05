@@ -53,6 +53,9 @@ class APIManager {
                 
                 const result = await response.json();
                 
+                // Debug: Log the inventory submission response
+                console.log('Inventory submission response:', JSON.stringify(result, null, 2));
+                
                 if (result.success) {
                     if (result.stores) {
                         await window.storageManager.saveStores(result.stores);

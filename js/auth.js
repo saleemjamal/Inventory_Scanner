@@ -49,8 +49,7 @@ class AuthManager {
             // Call login API
             const result = await this.authenticateUser(username, password);
             
-            // Debug: Log the actual response
-            console.log('Login response:', result);
+            // Login successful, update UI
             
             if (result.success) {
                 this.currentUser = result.user;
