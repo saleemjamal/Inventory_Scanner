@@ -470,5 +470,5 @@ class InventoryApp {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    new InventoryApp();
+    window.app = new InventoryApp();
 });

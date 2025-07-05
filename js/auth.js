@@ -177,6 +177,9 @@ class AuthManager {
             inventoryForm.style.display = 'block';
             if (cameraSection) cameraSection.style.display = 'block';
             
+            // Load data after authentication is confirmed
+            this.loadDataAfterAuth();
+            
         } else {
             // Show login, hide user info
             loginContainer.style.display = 'block';
@@ -185,6 +188,20 @@ class AuthManager {
             // Hide app content
             inventoryForm.style.display = 'none';
             if (cameraSection) cameraSection.style.display = 'none';
+        }
+    }
+
+    async loadDataAfterAuth() {
+        // Only load data if app is available and we're authenticated
+        if (window.app && this.isAuthenticated()) {
+            try {
+                console.log('Loading stores and carton suggestions after authentication...');
+                await window.app.loadStores();
+                await window.app.loadCartonSuggestion();
+                console.log('Data loading completed after authentication');
+            } catch (error) {
+                console.error('Failed to load data after authentication:', error);
+            }
         }
     }
 
