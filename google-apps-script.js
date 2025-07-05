@@ -14,6 +14,12 @@ function doGet(e) {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
+function doOptions(e) {
+  return ContentService
+    .createTextOutput("")
+    .setMimeType(ContentService.MimeType.TEXT);
+}
+
 function doPost(e) {
   try {
     const data = JSON.parse(e.postData.contents);

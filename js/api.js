@@ -33,9 +33,6 @@ class APIManager {
             try {
                 const response = await fetch(this.baseURL, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
                     body: JSON.stringify({
                         action: 'submitInventory',
                         data: data
@@ -102,9 +99,6 @@ class APIManager {
             try {
                 const response = await fetch(this.baseURL, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
                     body: JSON.stringify({
                         action: 'getStores'
                     })
@@ -139,9 +133,6 @@ class APIManager {
         try {
             const response = await fetch(this.baseURL, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
                 body: JSON.stringify({
                     action: 'uploadImage',
                     imageData: imageData,
