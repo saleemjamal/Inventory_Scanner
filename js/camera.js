@@ -147,8 +147,10 @@ class CameraManager {
             const blob = new Blob([byteArray], { type: 'image/jpeg' });
             const file = new File([blob], filename, { type: 'image/jpeg' });
 
-            // Check if Web Share API is supported with files
-            if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+            // Check if we're on mobile (touch device) and share API is available
+            const isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+            
+            if (isMobile && navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
                 // Mobile: Use native share menu
                 await navigator.share({
                     files: [file],
@@ -157,7 +159,7 @@ class CameraManager {
                 });
                 this.showSuccess('Photo shared successfully');
             } else {
-                // Desktop: Download fallback
+                // Desktop: Always download directly
                 const url = URL.createObjectURL(blob);
                 const downloadLink = document.createElement('a');
                 downloadLink.href = url;
