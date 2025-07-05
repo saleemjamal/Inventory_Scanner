@@ -293,7 +293,7 @@ function handleLogin(username, password) {
       usersSheet.getRange(1, 1, 1, headers.length).setValues([headers]);
       
       // Add default admin user (you should change this password!)
-      const defaultUser = ['admin', btoa('admin123'), 'Administrator', 'admin@poppatjamals.com', true, ''];
+      const defaultUser = ['admin', Utilities.base64Encode('admin123'), 'Administrator', 'admin@poppatjamals.com', true, ''];
       usersSheet.appendRow(defaultUser);
     }
     
@@ -339,7 +339,7 @@ function handleLogin(username, password) {
 function generateSessionToken(username) {
   const timestamp = Date.now();
   const random = Math.random().toString(36).substr(2);
-  return btoa(`${username}:${timestamp}:${random}`);
+  return Utilities.base64Encode(`${username}:${timestamp}:${random}`);
 }
 
 function verifySessionToken(sessionToken) {
@@ -348,7 +348,7 @@ function verifySessionToken(sessionToken) {
   }
   
   try {
-    const decoded = atob(sessionToken);
+    const decoded = Utilities.base64Decode(sessionToken, Utilities.Charset.UTF_8);
     const parts = decoded.split(':');
     
     if (parts.length !== 3) {
