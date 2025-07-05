@@ -207,10 +207,18 @@ class InventoryApp {
         const cartonInput = document.getElementById('carton-number');
         
         try {
+            console.log('Getting carton suggestion...');
+            const lastCarton = await this.storageManager.getLastCartonNumber();
+            console.log('Last carton number:', lastCarton);
+            
             const suggestion = await this.storageManager.getNextCartonSuggestion();
+            console.log('Next suggestion:', suggestion);
+            
             if (suggestion) {
                 cartonInput.value = suggestion;
                 cartonInput.select(); // Select the text so user can easily modify it
+            } else {
+                console.log('No suggestion available');
             }
         } catch (error) {
             console.error('Failed to get carton suggestion:', error);
