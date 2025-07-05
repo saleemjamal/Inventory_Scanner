@@ -293,6 +293,7 @@ class InventoryApp {
             }
 
             // Save the carton number for next suggestion
+            console.log('Saving carton number:', formData.cartonNumber);
             await this.storageManager.saveLastCartonNumber(formData.cartonNumber);
             
             // Upload image and submit data FIRST
